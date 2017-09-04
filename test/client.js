@@ -8,6 +8,11 @@ import User from '../lib/user'
 import { data, version } from 'mumble-streams'
 const DenyType = data.messages.PermissionDenied.DenyType
 
+class DropDuplex extends Duplex {
+  _write (chunk, encoding, callback) { callback() }
+  _read (size) {}
+}
+
 describe('Client', function () {
   this.timeout(100)
   var client
@@ -488,6 +493,23 @@ describe('Client', function () {
         position: thePosition,
         end: true
       })
+    })
+  })
+  describe('#connected', function () {
+    it('should be false until data stream is connected', function () {
+      expect(client.connected).to.equal(false)
+
+      client.connectDataStream(new DropDuplex())
+
+      expect(client.connected).to.equal(true)
+    })
+    it('should be false after disconnect has been called', function () {
+      client.connectDataStream(new DropDuplex())
+      expect(client.connected).to.equal(true)
+
+      client.disconnect()
+
+      expect(client.connected).to.equal(false)
     })
   })
 })

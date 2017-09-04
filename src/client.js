@@ -143,6 +143,7 @@ class MumbleClient extends EventEmitter {
         payload: data
       })
     })
+    this._data.on('end', this.disconnect.bind(this))
 
     this._disconnected = false
   }
@@ -519,6 +520,10 @@ class MumbleClient extends EventEmitter {
 
   get root () {
     return this._channelById[0]
+  }
+
+  get connected () {
+    return !this._disconnected && this._dataStream != null
   }
 }
 
