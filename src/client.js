@@ -420,6 +420,22 @@ class MumbleClient extends EventEmitter {
     this.data.end()
   }
 
+  /**
+   * Find a channel by name.
+   * If no such channel exists, return null.
+   *
+   * @param {string} name - The full name of the channel
+   * @returns {?Channel}
+   */
+  getChannel (name) {
+    for (let channel of this.channels) {
+      if (channel.name === name) {
+        return channel
+      }
+    }
+    return null
+  }
+
   setSelfMute (mute) {
     var message = {
       name: 'UserState',
