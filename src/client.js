@@ -143,6 +143,8 @@ class MumbleClient extends EventEmitter {
         payload: data
       })
     })
+
+    this._disconnected = false
   }
 
   _send (msg) {
@@ -416,8 +418,13 @@ class MumbleClient extends EventEmitter {
    * Does nothing when not connected.
    */
   disconnect () {
-    this.voice.end()
-    this.data.end()
+    if (this._disconnected) {
+      return
+    }
+    this._disconnected = true
+    this._voice.end()
+    this._data.end()
+    clearInterval(this._pinger)
   }
 
   /**
