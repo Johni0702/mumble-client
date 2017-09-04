@@ -2,7 +2,7 @@
 
 This module implements the client side of the Mumble protocol for use in both Nodejs and the browser.
 It does not enforce any particular transport protocol nor does it provide the audio encoder/decoder.
-See [mumble-client-tls] and [mumble-client-udp] and [mumble-client-codecs-node] for creating a Nodejs based application or
+See [mumble-client-tcp] and [mumble-client-udp] and [mumble-client-codecs-node] for creating a Nodejs based application or
 [mumble-client-websocket] and [mumble-client-codecs-browser] for a browser app.
 
 ### Usage
@@ -89,7 +89,7 @@ myPcmSource.on('data', function (chunk) {
 ### License
 MIT
 
-[mumble-client-tls]: https://github.com/johni0702/mumble-client-tls
+[mumble-client-tcp]: https://github.com/johni0702/mumble-client-tcp
 [mumble-client-udp]: https://github.com/johni0702/mumble-client-udp
 [mumble-client-websocket]: https://github.com/johni0702/mumble-client-websocket
 [mumble-client-codecs-node]: https://github.com/johni0702/mumble-client-codecs-node
