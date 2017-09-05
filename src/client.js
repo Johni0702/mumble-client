@@ -265,7 +265,7 @@ class MumbleClient extends EventEmitter {
         this._voice.write({
           seqNum: seqNum++,
           codec: codec,
-          target: target,
+          mode: target,
           frames: [data.frame],
           position: data.position,
           end: false
@@ -274,7 +274,7 @@ class MumbleClient extends EventEmitter {
         this._voice.write({
           seqNum: seqNum,
           codec: codec,
-          target: target,
+          mode: target,
           frames: [],
           end: true
         })
