@@ -145,7 +145,21 @@ class MumbleClient extends EventEmitter {
     })
     this._data.on('end', this.disconnect.bind(this))
 
+    this._registerErrorHandler(this._data, this._voice, this._dataEncoder,
+      this._dataDecoder, this._voiceEncoder, this._voiceDecoder)
+
     this._disconnected = false
+  }
+
+  _registerErrorHandler () {
+    for (const obj of arguments) {
+      obj.on('error', this._error.bind(this))
+    }
+  }
+
+  _error (reason) {
+    this.emit('error', reason)
+    this.disconnect()
   }
 
   _send (msg) {
@@ -165,6 +179,7 @@ class MumbleClient extends EventEmitter {
     this._dataStream = stream
 
     // Connect the supplied stream to the data channel encoder and decoder
+    this._registerErrorHandler(stream)
     this._dataEncoder.pipe(stream).pipe(this._dataDecoder)
 
     // Send the initial two packets
@@ -212,6 +227,7 @@ class MumbleClient extends EventEmitter {
    */
   connectVoiceStream (stream) {
     // Connect the stream to the voice channel encoder and decoder
+    this._registerErrorHandler(stream)
     this._voiceEncoder.pipe(stream).pipe(this._voiceDecoder)
 
     // TODO: Ping packet
