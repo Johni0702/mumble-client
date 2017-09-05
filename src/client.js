@@ -143,6 +143,8 @@ class MumbleClient extends EventEmitter {
         payload: data
       })
     })
+    this._voiceDecoder.on('unknown_codec', codecId =>
+      this.emit('unknown_codec', codecId))
     this._data.on('end', this.disconnect.bind(this))
 
     this._registerErrorHandler(this._data, this._voice, this._dataEncoder,

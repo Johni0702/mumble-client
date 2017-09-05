@@ -1,6 +1,6 @@
 {
   "name": "mumble-client",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Mumble protocol client library",
   "main": "index.js",
   "scripts": {
@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "drop-stream": "^0.1.1",
-    "mumble-streams": "0.0.1",
+    "mumble-streams": "0.0.3",
     "promise": "^7.1.1",
     "reduplexer": "^1.1.0",
     "remove-value": "^1.0.0",
