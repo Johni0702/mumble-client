@@ -426,6 +426,8 @@ class MumbleClient extends EventEmitter {
     this._voice.end()
     this._data.end()
     clearInterval(this._pinger)
+
+    this.emit('disconnected')
   }
 
   /**
