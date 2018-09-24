@@ -9,6 +9,7 @@ class Channel extends EventEmitter {
     this._links = []
     this.users = []
     this.children = []
+    this._haveRequestedDescription = false
   }
 
   _remove () {
@@ -28,6 +29,7 @@ class Channel extends EventEmitter {
     }
     if (msg.description_hash != null) {
       changes.descriptionHash = this._descriptionHash = msg.description_hash
+      this._haveRequestedDescription = false // invalidate previous request
     }
     if (msg.temporary != null) {
       changes.temporary = this._temporary = msg.temporary
@@ -151,6 +153,17 @@ class Channel extends EventEmitter {
         message: message
       }
     })
+  }
+
+  requestDescription () {
+    if (this._haveRequestedDescription) return
+    this._client._send({
+      name: 'RequestBlob',
+      payload: {
+        channel_description: this._id
+      }
+    })
+    this._haveRequestedDescription = true
   }
 
   get name () {

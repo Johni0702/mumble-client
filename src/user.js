@@ -8,6 +8,8 @@ class User extends EventEmitter {
     super()
     this._client = client
     this._id = id
+    this._haveRequestedTexture = false
+    this._haveRequestedComment = false
   }
 
   _update (msg) {
@@ -38,12 +40,14 @@ class User extends EventEmitter {
     }
     if (msg.texture_hash != null) {
       changes.textureHash = this._textureHash = msg.texture_hash
+      this._haveRequestedTexture = false // invalidate previous request
     }
     if (msg.comment != null) {
       changes.comment = this._comment = msg.comment
     }
     if (msg.comment_hash != null) {
       changes.commentHash = this._commentHash = msg.comment_hash
+      this._haveRequestedComment = false // invalidate previous request
     }
     if (msg.priority_speaker != null) {
       changes.prioritySpeaker = this._prioritySpeaker = msg.priority_speaker
@@ -202,6 +206,28 @@ class User extends EventEmitter {
         texture: ''
       }
     })
+  }
+
+  requestComment () {
+    if (this._haveRequestedComment) return
+    this._client._send({
+      name: 'RequestBlob',
+      payload: {
+        session_comment: this._id
+      }
+    })
+    this._haveRequestedComment = true
+  }
+
+  requestTexture () {
+    if (this._haveRequestedTexture) return
+    this._client._send({
+      name: 'RequestBlob',
+      payload: {
+        session_texture: this._id
+      }
+    })
+    this._haveRequestedTexture = true
   }
 
   register () {
