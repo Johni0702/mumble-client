@@ -314,6 +314,17 @@ class MumbleClient extends EventEmitter {
     this._voiceDecoder.write(payload)
   }
 
+  _onVersion (payload) {
+    this.serverVersion = {
+      major: payload.version >> 16,
+      minor: (payload.version >> 8) & 0xff,
+      patch: (payload.version >> 0) & 0xff,
+      release: payload.release,
+      os: payload.os,
+      osVersion: payload.os_version
+    }
+  }
+
   _onServerSync (payload) {
     // This packet finishes the initialization phase
     this.self = this._userById[payload.session]
