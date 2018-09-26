@@ -8,6 +8,7 @@ import { getOSName, getOSVersion } from './utils.js'
 import User from './user'
 import Channel from './channel'
 import removeValue from 'remove-value'
+import Stats from 'stats-incremental'
 
 const DenyType = mumbleStreams.data.messages.PermissionDenied.DenyType
 
@@ -108,6 +109,9 @@ class MumbleClient extends EventEmitter {
    * @param {Codecs} [options.codecs] - Codecs used for voice
    * @param {number} [options.userVoiceTimeout] - Milliseconds after which an
    *  inactive voice transmissions is timed out
+   * @param {number} [options.maxInFlightDataPings] - Amount of data pings without response
+   *  after which the connection is considered timed out
+   * @param {number} [options.dataPingInterval] - Interval of data pings (in ms)
    */
   constructor (options) {
     super()
@@ -121,6 +125,11 @@ class MumbleClient extends EventEmitter {
     this._password = options.password
     this._tokens = options.tokens
     this._codecs = options.codecs
+
+    this._dataPingInterval = options.dataPingInterval || 5000
+    this._maxInFlightDataPings = options.maxInFlightDataPings || 2
+    this._dataStats = new Stats()
+    this._voiceStats = new Stats()
 
     this._userById = {}
     this._channelById = {}
@@ -338,16 +347,48 @@ class MumbleClient extends EventEmitter {
 
     // Make sure we send regular ping packets to not get disconnected
     this._pinger = setInterval(() => {
+      if (this._inFlightDataPings >= this._maxInFlightDataPings) {
+        this._error('timeout')
+        return
+      }
+      let dataStats = this._dataStats.getAll()
+      let voiceStats = this._voiceStats.getAll()
+      let timestamp = new Date().getTime()
+      let payload = {
+        timestamp: timestamp
+      }
+      if (dataStats) {
+        payload.tcp_packets = dataStats.n
+        payload.tcp_ping_avg = dataStats.mean
+        payload.tcp_ping_var = dataStats.variance
+      }
+      if (voiceStats) {
+        payload.udp_packets = voiceStats.n
+        payload.udp_ping_avg = voiceStats.mean
+        payload.udp_ping_var = voiceStats.variance
+      }
       this._send({
         name: 'Ping',
-        payload: {
-          timestamp: new Date().getTime()
-        }
+        payload: payload
       })
-    }, 10000)
+      this._inFlightDataPings++
+    }, this._dataPingInterval)
 
     // We are now connected
     this.emit('connected')
+  }
+
+  _onPing (payload) {
+    if (this._inFlightDataPings <= 0) {
+      console.warn('Got unexpected ping message:', payload)
+      return
+    }
+    this._inFlightDataPings--
+
+    let now = new Date().getTime()
+    let duration = now - payload.timestamp.toNumber()
+    this._dataStats.update(duration)
+    this.emit('dataPing', duration)
   }
 
   _onReject (payload) {
@@ -627,6 +668,14 @@ class MumbleClient extends EventEmitter {
 
   get connected () {
     return !this._disconnected && this._dataStream != null
+  }
+
+  get dataStats () {
+    return this._dataStats.getAll()
+  }
+
+  get voiceStats () {
+    return this._voiceStats.getAll()
   }
 }
 

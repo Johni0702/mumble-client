@@ -38,6 +38,7 @@
     "reduplexer": "^1.1.0",
     "remove-value": "^1.0.0",
     "rtimer": "^0.1.0",
+    "stats-incremental": "^1.2.1",
     "through2": "^2.0.2"
   }
 }
