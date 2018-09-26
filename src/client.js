@@ -37,6 +37,7 @@ const DenyType = mumbleStreams.data.messages.PermissionDenied.DenyType
  * @property {Float32Array} pcm - The pcm data
  * @property {number} numberOfChannels - Number of channels
  * @property {?Position} position - Position of audio source
+ * @property {?number} bitrate - Target bitrate hint for encoder, see for default {@link MumbleClient#setAudioQuality}
  */
 
 /**
@@ -257,6 +258,8 @@ class MumbleClient extends EventEmitter {
           position: { x: chunk.x, y: chunk.y, z: chunk.z }
         }
       }
+      let samples = this._samplesPerPacket || (chunk.pcm.length / numberOfChannels)
+      chunk.bitrate = this.getActualBitrate(samples, chunk.position != null)
       callback(null, chunk)
     })
     const codec = 'Opus' // TODO
@@ -457,6 +460,73 @@ class MumbleClient extends EventEmitter {
     clearInterval(this._pinger)
 
     this.emit('disconnected')
+  }
+
+  /**
+   * Set preferred audio bitrate and samples per packet.
+   *
+   * The {@link PCMData} passed to the stream returned by {@link createVoiceStream} must
+   * contain the appropriate amount of samples per channel for bandwidth control to
+   * function as expected.
+   *
+   * If this method is never called or false is passed as one of the values, then the
+   * samplesPerPacket are determined by inspecting the {@link PCMData} passed and the
+   * bitrate is calculated from the maximum bitrate advertised by the server.
+   *
+   * @param {number} bitrate - Preferred audio bitrate, sensible values are 8k to 96k
+   * @param {number} samplesPerPacket - Amount of samples per packet, valid values depend on the codec used but all should support 10ms (i.e. 480), 20ms, 40ms and 60ms
+   */
+  setAudioQuality (bitrate, samplesPerPacket) {
+    this._preferredBitrate = bitrate
+    this._samplesPerPacket = samplesPerPacket
+  }
+
+  /**
+   * Calculate the actual bitrate taking into account maximum and preferred bitrate.
+   */
+  getActualBitrate (samplesPerPacket, sendPosition) {
+    let bitrate = this.getPreferredBitrate(samplesPerPacket, sendPosition)
+    let bandwidth = MumbleClient.calcEnforcableBandwidth(bitrate, samplesPerPacket, sendPosition)
+    if (bandwidth <= this.maxBandwidth) {
+      return bitrate
+    } else {
+      return this.getMaxBitrate(samplesPerPacket, sendPosition)
+    }
+  }
+
+  /**
+   * Returns the preferred bitrate set by {@link setAudioQuality} or
+   * {@link getMaxBitrate} if not set.
+   */
+  getPreferredBitrate (samplesPerPacket, sendPosition) {
+    if (this._preferredBitrate) {
+      return this._preferredBitrate
+    }
+    return this.getMaxBitrate(samplesPerPacket, sendPosition)
+  }
+
+  /**
+   * Calculate the maximum bitrate possible given the current server bandwidth limit.
+   */
+  getMaxBitrate (samplesPerPacket, sendPosition) {
+    let overhead = MumbleClient.calcEnforcableBandwidth(0, samplesPerPacket, sendPosition)
+    return this.maxBandwidth - overhead
+  }
+
+  /**
+   * Calculate the bandwidth used if IP/UDP packets were used to transmit audio.
+   * This matches the value used by Mumble servers to enforce bandwidth limits.
+   * @returns {number} bits per second
+   */
+  static calcEnforcableBandwidth (bitrate, samplesPerPacket, sendPosition) {
+    // IP + UDP + Crypt + Header + SeqNum (VarInt) + Codec Header + Optional Position
+    // Codec Header depends on codec:
+    //  - Opus is always 4 (just the length as VarInt)
+    //  - CELT/Speex depends on frames (10ms) per packet (1 byte each)
+    let codecHeaderBytes = Math.max(4, samplesPerPacket / 480)
+    let packetBytes = 20 + 8 + 4 + 1 + 4 + codecHeaderBytes + (sendPosition ? 12 : 0)
+    let packetsPerSecond = 48000 / samplesPerPacket
+    return Math.round(packetBytes * 8 * packetsPerSecond + bitrate)
   }
 
   /**
