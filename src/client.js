@@ -267,14 +267,16 @@ class MumbleClient extends EventEmitter {
     voiceStream
       .pipe(this._codecs.createEncoderStream(codec))
       .on('data', data => {
+        let duration = this._codecs.getDuration(codec, data.frame) / 10
         this._voice.write({
-          seqNum: seqNum++,
+          seqNum: seqNum,
           codec: codec,
           mode: target,
           frames: [data.frame],
           position: data.position,
           end: false
         })
+        seqNum += duration
       }).on('end', () => {
         this._voice.write({
           seqNum: seqNum,
