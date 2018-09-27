@@ -260,6 +260,10 @@ class User extends EventEmitter {
     })
   }
 
+  get id () {
+    return this._id
+  }
+
   get username () {
     return this._username
   }

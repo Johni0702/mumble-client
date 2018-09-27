@@ -662,6 +662,14 @@ class MumbleClient extends EventEmitter {
     })
   }
 
+  getChannelById (id) {
+    return this._channelById[id]
+  }
+
+  getUserById (id) {
+    return this._userById[id]
+  }
+
   get root () {
     return this._channelById[0]
   }
