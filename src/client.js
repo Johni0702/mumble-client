@@ -112,6 +112,11 @@ class MumbleClient extends EventEmitter {
    * @param {number} [options.maxInFlightDataPings] - Amount of data pings without response
    *  after which the connection is considered timed out
    * @param {number} [options.dataPingInterval] - Interval of data pings (in ms)
+   * @param {object} [options.webrtc] - WebRTC options if the server supports it
+   * @param {object} [options.webrtc.enabled] - Whether to enable WebRTC support
+   * @param {object} [options.webrtc.required] - Failed connection if WebRTC unsupported by server
+   * @param {object} [options.webrtc.mic] - MediaStream (or track) to use as local source of audio
+   * @param {object} [options.webrtc.audioContext] - AudioContext to which remote nodes are connected
    */
   constructor (options) {
     super()
@@ -125,6 +130,35 @@ class MumbleClient extends EventEmitter {
     this._password = options.password
     this._tokens = options.tokens
     this._codecs = options.codecs
+
+    this._webrtcOptions = options.webrtc || {}
+    this._webrtcSupported = this._webrtcOptions.enabled
+    this._webrtcRequired = this._webrtcOptions.required
+    this._webrtcMic = this._webrtcOptions.mic
+    this._webrtcAudioCtx = this._webrtcOptions.audioContext
+    if (this._webrtcSupported) {
+      if (!this._webrtcMic || !this._webrtcAudioCtx) {
+        throw Error('Need mic and audio context for WebRTC')
+      }
+      this._pc = new window.RTCPeerConnection()
+      this._pc.addStream(this._webrtcMic)
+      this._pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          this._send({
+            name: 'IceCandidate',
+            payload: {
+              content: event.candidate.candidate
+            }
+          })
+        }
+      }
+      this._pc.ontrack = (event) => {
+        let stream = new window.MediaStream()
+        stream.addTrack(event.track)
+        this._webrtcAudioCtx.createMediaStreamSource(stream)
+          .connect(this._webrtcAudioCtx.destination)
+      }
+    }
 
     this._dataPingInterval = options.dataPingInterval || 5000
     this._maxInFlightDataPings = options.maxInFlightDataPings || 2
@@ -211,7 +245,8 @@ class MumbleClient extends EventEmitter {
         password: this._password,
         tokens: this._tokens,
         celt_versions: (this._codecs || { celt: [] }).celt,
-        opus: (this._codecs || { opus: false }).opus
+        opus: (this._codecs || { opus: false }).opus,
+        webrtc: this._webrtcSupported
       }
     })
 
@@ -246,6 +281,22 @@ class MumbleClient extends EventEmitter {
   }
 
   createVoiceStream (target = 0, numberOfChannels = 1) {
+    if (this._webrtcEnabled) {
+      this._webrtcMic.getAudioTracks()[0].enabled = true
+      this._send({
+        name: 'TalkingState',
+        payload: {
+          target: target
+        }
+      })
+      return DropStream.obj().on('finish', () => {
+        this._webrtcMic.getAudioTracks()[0].enabled = false
+        this._send({
+          name: 'TalkingState',
+          payload: {}
+        })
+      })
+    }
     if (!this._codecs) {
       return DropStream.obj()
     }
@@ -341,6 +392,11 @@ class MumbleClient extends EventEmitter {
 
   _onServerSync (payload) {
     // This packet finishes the initialization phase
+    if (this._webrtcRequired && !this._webrtcEnabled) {
+      this._error('server_does_not_support_webrtc')
+      return
+    }
+
     this.self = this._userById[payload.session]
     this.maxBandwidth = payload.max_bandwidth
     this.welcomeMessage = payload.welcome_text
@@ -467,10 +523,12 @@ class MumbleClient extends EventEmitter {
   _onUserState (payload) {
     var user = this._userById[payload.session]
     if (!user) {
-      user = new User(this, payload.session)
+      user = new User(this, payload.session, payload.ssrc)
       this._userById[user._id] = user
       this.users.push(user)
       this.emit('newUser', user)
+
+      this._updateWebRtc()
 
       // For some reason, the mumble protocol does not send the initial
       // channel of a client if it is the root channel
@@ -485,6 +543,141 @@ class MumbleClient extends EventEmitter {
       user._remove(this._userById[payload.actor], payload.reason, payload.ban)
       delete this._userById[user._id]
       removeValue(this.users, user)
+    }
+  }
+
+  _createWebRtcOffer () {
+    let sdp = []
+    // https://tools.ietf.org/html/rfc2327#section-6
+    sdp.push('v=0')
+    sdp.push('o=- 12345 0 IN IP4 0.0.0.0')
+    sdp.push('s=-')
+    sdp.push('t=0 0')
+
+    sdp.push('a=sendrecv')
+    sdp.push('a=ice-options:trickle')
+
+    sdp.push('a=group:BUNDLE audio' + this.users.map(user => ' audio' + user.ssrc).join(''))
+
+    sdp.push('m=audio 0 UDP/TLS/RTP/SAVPF 97')
+    sdp.push('c=IN IP4 0.0.0.0')
+    sdp.push('a=recvonly')
+    sdp.push('a=fingerprint:sha-256 ' + this._remoteDtlsFingerprint)
+    sdp.push('a=ice-pwd:' + this._remoteIcePwd)
+    sdp.push('a=ice-ufrag:' + this._remoteIceUfrag)
+    sdp.push('a=mid:audio')
+    sdp.push('a=rtpmap:97 OPUS/48000/2')
+    sdp.push('a=rtcp-mux')
+    sdp.push('a=setup:actpass') // see below
+    sdp.push('a=bundle-only')
+
+    for (let user of this.users) {
+      let ssrc = user.ssrc
+      sdp.push('m=audio 0 UDP/TLS/RTP/SAVPF 97')
+      sdp.push('c=IN IP4 0.0.0.0')
+      sdp.push('a=sendonly')
+      sdp.push('a=fingerprint:sha-256 ' + this._remoteDtlsFingerprint)
+      sdp.push('a=ice-pwd:' + this._remoteIcePwd)
+      sdp.push('a=ice-ufrag:' + this._remoteIceUfrag)
+      sdp.push('a=mid:audio' + ssrc)
+      sdp.push('a=rtpmap:97 OPUS/48000/2')
+      sdp.push('a=rtcp-mux')
+      // https://tools.ietf.org/html/rfc4145#section-4
+      // Would love to use 'passive' but WebRTC demands 'actpass' for the offerer
+      sdp.push('a=setup:actpass')
+      sdp.push('a=bundle-only')
+      sdp.push(`a=ssrc:${ssrc} cname:audio${ssrc}`)
+    }
+    sdp.push('')
+
+    return sdp.join('\n')
+  }
+
+  _parseWebRtcAnswer (answer) {
+    let lines = answer.split(answer.indexOf('\r') === -1 ? '\n' : '\r\n')
+    let icePwd, iceUfrag, dtlsFingerprint
+    for (let line of lines) {
+      if (line.startsWith('a=ice-pwd:')) {
+        icePwd = line.substring('a=ice-pwd:'.length)
+      }
+      if (line.startsWith('a=ice-ufrag:')) {
+        iceUfrag = line.substring('a=ice-ufrag:'.length)
+      }
+      if (line.startsWith('a=fingerprint:sha-256 ')) {
+        dtlsFingerprint = line.substring('a=fingerprint:sha-256 '.length)
+      }
+    }
+    return [icePwd, iceUfrag, dtlsFingerprint]
+  }
+
+  _updateWebRtc () {
+    if (!this._remoteIcePwd) {
+      return
+    }
+
+    this._updateWebRtcPromise =
+      (this._updateWebRtcPromise || Promise.resolve()).then(() => {
+        return this._pc.setRemoteDescription(new window.RTCSessionDescription({
+          type: 'offer',
+          sdp: this._createWebRtcOffer()
+        }))
+      }).then(() => {
+        return this._pc.createAnswer()
+      }).then((answer) => {
+        if (!this._hasSentWebRtcInit) {
+          let [icePwd, iceUfrag, dtlsFingerprint] = this._parseWebRtcAnswer(answer.sdp)
+          this._send({
+            name: 'WebRTC',
+            payload: {
+              ice_pwd: icePwd,
+              ice_ufrag: iceUfrag,
+              dtls_fingerprint: dtlsFingerprint
+            }
+          })
+          this._hasSentWebRtcInit = true
+        }
+        // server is always passive -> we always need to be active
+        answer.sdp = answer.sdp.replace(/a=setup:passive/g, 'a=setup:active')
+        return this._pc.setLocalDescription(answer)
+      }).catch(err => console.error(err))
+  }
+
+  _onWebRTC (payload) {
+    if (!this._pc) {
+      return
+    }
+    this._webrtcEnabled = true
+
+    this._remoteIcePwd = payload.ice_pwd
+    this._remoteIceUfrag = payload.ice_ufrag
+    this._remoteDtlsFingerprint = payload.dtls_fingerprint
+
+    this._updateWebRtc()
+  }
+
+  _onIceCandidate (payload) {
+    if (this._pc) {
+      this._pc.addIceCandidate(new window.RTCIceCandidate({
+        sdpMLineIndex: 0,
+        candidate: payload.content
+      }), () => {}, console.error)
+    }
+  }
+
+  _onTalkingState (payload) {
+    var user = this._userById[payload.session]
+    if (user) {
+      if (payload.target != null) {
+        user._getOrCreateVoiceStream({
+          0: 'normal',
+          1: 'shout',
+          2: 'whisper',
+          31: 'loopback'
+        }[payload.target])
+      } else if (user._voice) {
+        user._voice.end()
+        user._voice = null
+      }
     }
   }
 

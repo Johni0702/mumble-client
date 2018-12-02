@@ -4,10 +4,11 @@ import removeValue from 'remove-value'
 import Timer from 'rtimer'
 
 class User extends EventEmitter {
-  constructor (client, id) {
+  constructor (client, id, ssrc) {
     super()
     this._client = client
     this._id = id
+    this._ssrc = ssrc
     this._haveRequestedTexture = false
     this._haveRequestedComment = false
   }
@@ -78,7 +79,7 @@ class User extends EventEmitter {
     this.emit('remove', actor, reason, ban)
   }
 
-  _getOrCreateVoiceStream () {
+  _getOrCreateVoiceStream (target) {
     if (!this._voice) {
       // New transmission
       if (!this._client._codecs) {
@@ -87,13 +88,16 @@ class User extends EventEmitter {
       } else {
         this._voice = this._client._codecs.createDecoderStream(this)
       }
+      this._voice.target = target
       this._voice.once('close', () => {
         this._voice = null
       })
-      this._voiceTimeout = new Timer(() => {
-        this._voice.end()
-        this._voice = null
-      }, this._client._options.userVoiceTimeout || 200).set()
+      if (!this._client._webrtcEnabled) {
+        this._voiceTimeout = new Timer(() => {
+          this._voice.end()
+          this._voice = null
+        }, this._client._options.userVoiceTimeout || 200).set()
+      }
       this.emit('voice', this._voice)
     }
     return this._voice
@@ -136,7 +140,7 @@ class User extends EventEmitter {
             lost = 10
           }
           for (let i = 0; i < lost; i++) {
-            this._getOrCreateVoiceStream().write({
+            this._getOrCreateVoiceStream(target).write({
               target: target,
               codec: codec,
               frame: null,
@@ -146,7 +150,7 @@ class User extends EventEmitter {
         }
       }
       frames.forEach(frame => {
-        this._getOrCreateVoiceStream().write({
+        this._getOrCreateVoiceStream(target).write({
           target: target,
           codec: codec,
           frame: frame,
@@ -262,6 +266,10 @@ class User extends EventEmitter {
 
   get id () {
     return this._id
+  }
+
+  get ssrc () {
+    return this._ssrc
   }
 
   get username () {
