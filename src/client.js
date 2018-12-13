@@ -140,7 +140,11 @@ class MumbleClient extends EventEmitter {
       if (!this._webrtcMic || !this._webrtcAudioCtx) {
         throw Error('Need mic and audio context for WebRTC')
       }
-      this._pc = new window.RTCPeerConnection()
+      this._webrtcSessionId = Date.now()
+      this._webrtcSessionVersion = 0
+      this._pc = new window.RTCPeerConnection({
+        sdpSemantics: 'unified-plan'
+      })
       this._pc.addStream(this._webrtcMic)
       this._pc.onicecandidate = (event) => {
         if (event.candidate) {
@@ -153,10 +157,14 @@ class MumbleClient extends EventEmitter {
         }
       }
       this._pc.ontrack = (event) => {
-        let stream = new window.MediaStream()
-        stream.addTrack(event.track)
-        this._webrtcAudioCtx.createMediaStreamSource(stream)
-          .connect(this._webrtcAudioCtx.destination)
+        // This is how it should ideally work:
+        // this._webrtcAudioCtx.createMediaStreamSource(event.streams[0])
+        //   .connect(this._webrtcAudioCtx.destination)
+        // but Chrome apparently only supports webrtc+webaudio for input, not for output...
+        // So instead we need to create <audio> elements for each stream:
+        let elem = document.createElement('audio')
+        elem.srcObject = event.streams[0]
+        elem.play()
       }
     }
 
@@ -547,46 +555,47 @@ class MumbleClient extends EventEmitter {
   }
 
   _createWebRtcOffer () {
+    // TODO configure max bandwidth
+
     let sdp = []
     // https://tools.ietf.org/html/rfc2327#section-6
     sdp.push('v=0')
-    sdp.push('o=- 12345 0 IN IP4 0.0.0.0')
+    sdp.push(`o=- ${this._webrtcSessionId} ${this._webrtcSessionVersion++} IN IP4 0.0.0.0`)
     sdp.push('s=-')
     sdp.push('t=0 0')
 
-    sdp.push('a=sendrecv')
+    sdp.push('a=fingerprint:sha-256 ' + this._remoteDtlsFingerprint)
+    // https://tools.ietf.org/html/rfc4145#section-4
+    // Would love to use 'passive' but WebRTC demands 'actpass' for the offerer
+    sdp.push('a=setup:actpass')
+    sdp.push('a=ice-pwd:' + this._remoteIcePwd)
+    sdp.push('a=ice-ufrag:' + this._remoteIceUfrag)
     sdp.push('a=ice-options:trickle')
-
-    sdp.push('a=group:BUNDLE audio' + this.users.map(user => ' audio' + user.ssrc).join(''))
+    sdp.push('a=group:BUNDLE 0' + this.users.map(user => ' ' + user.ssrc).join(''))
+    sdp.push('a=msid-semantic:WMS *')
 
     sdp.push('m=audio 0 UDP/TLS/RTP/SAVPF 97')
     sdp.push('c=IN IP4 0.0.0.0')
-    sdp.push('a=recvonly')
-    sdp.push('a=fingerprint:sha-256 ' + this._remoteDtlsFingerprint)
-    sdp.push('a=ice-pwd:' + this._remoteIcePwd)
-    sdp.push('a=ice-ufrag:' + this._remoteIceUfrag)
-    sdp.push('a=mid:audio')
+    sdp.push(`a=msid:0 0`)
+    sdp.push('a=mid:0')
     sdp.push('a=rtpmap:97 OPUS/48000/2')
+    sdp.push('a=fmtp:97 stereo=0; useinbandfec=0; minptime=10')
+    sdp.push('a=recvonly')
     sdp.push('a=rtcp-mux')
-    sdp.push('a=setup:actpass') // see below
     sdp.push('a=bundle-only')
 
     for (let user of this.users) {
       let ssrc = user.ssrc
-      sdp.push('m=audio 0 UDP/TLS/RTP/SAVPF 97')
+      sdp.push(`m=audio 0 UDP/TLS/RTP/SAVPF 97`)
       sdp.push('c=IN IP4 0.0.0.0')
-      sdp.push('a=sendonly')
-      sdp.push('a=fingerprint:sha-256 ' + this._remoteDtlsFingerprint)
-      sdp.push('a=ice-pwd:' + this._remoteIcePwd)
-      sdp.push('a=ice-ufrag:' + this._remoteIceUfrag)
-      sdp.push('a=mid:audio' + ssrc)
+      sdp.push(`a=msid:${ssrc} ${ssrc}`)
+      sdp.push('a=mid:' + ssrc)
       sdp.push('a=rtpmap:97 OPUS/48000/2')
+      sdp.push('a=fmtp:97 stereo=0; useinbandfec=0; minptime=10')
+      sdp.push('a=sendonly')
       sdp.push('a=rtcp-mux')
-      // https://tools.ietf.org/html/rfc4145#section-4
-      // Would love to use 'passive' but WebRTC demands 'actpass' for the offerer
-      sdp.push('a=setup:actpass')
-      sdp.push('a=bundle-only')
       sdp.push(`a=ssrc:${ssrc} cname:audio${ssrc}`)
+      sdp.push('a=bundle-only')
     }
     sdp.push('')
 
