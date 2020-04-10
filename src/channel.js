@@ -62,7 +62,7 @@ class Channel extends EventEmitter {
       }
       changes.parent = this.parent
     }
-    this.emit('update', changes)
+    this.emit('update', this._client._channelById[msg.channel_id], changes)
   }
 
   setName (name) {
