@@ -147,7 +147,7 @@ class MumbleClient extends EventEmitter {
       })
       this._pc.addStream(this._webrtcMic)
       this._pc.onicecandidate = (event) => {
-        if (event.candidate) {
+        if (event.candidate && event.candidate.candidate) {
           this._send({
             name: 'IceCandidate',
             payload: {
