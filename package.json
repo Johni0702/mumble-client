@@ -27,13 +27,13 @@
     "babel-cli": "^6.14.0",
     "babel-preset-es2015": "^6.14.0",
     "chai": "^3.5.0",
-    "mocha": "^3.0.2",
+    "mocha": "^8.2.1",
     "mocha-standard": "^1.0.0",
     "standard": "^8.0.0"
   },
   "dependencies": {
     "drop-stream": "^0.1.1",
-    "mumble-streams": "github:johni0702/mumble-streams#47b84d1",
+    "mumble-streams": "https://github.com/altpd13/mumble-streams",
     "promise": "^7.1.1",
     "reduplexer": "^1.1.0",
     "remove-value": "^1.0.0",
