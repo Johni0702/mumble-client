@@ -189,6 +189,7 @@ class MumbleClient extends EventEmitter {
   connectDataStream (stream, callback) {
     if (this._dataStream) throw Error('Already connected!')
     this._dataStream = stream
+    this._dataStream.once('close', () => this._error('Socket closed!'))
 
     // Connect the supplied stream to the data channel encoder and decoder
     this._registerErrorHandler(stream)
