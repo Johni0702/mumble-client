@@ -117,6 +117,7 @@ class MumbleClient extends EventEmitter {
    * @param {object} [options.webrtc.required] - Failed connection if WebRTC unsupported by server
    * @param {object} [options.webrtc.mic] - MediaStream (or track) to use as local source of audio
    * @param {object} [options.webrtc.audioContext] - AudioContext to which remote nodes are connected
+   * @param {object} [options.webrtc.iceServers] - WebRTC STUN/TURN servers list
    */
   constructor (options) {
     super()
@@ -136,6 +137,7 @@ class MumbleClient extends EventEmitter {
     this._webrtcRequired = this._webrtcOptions.required
     this._webrtcMic = this._webrtcOptions.mic
     this._webrtcAudioCtx = this._webrtcOptions.audioContext
+    this._webrtcIceServers = this._webrtcOptions.iceServers || [];
     if (this._webrtcSupported) {
       if (!this._webrtcMic || !this._webrtcAudioCtx) {
         throw Error('Need mic and audio context for WebRTC')
@@ -143,6 +145,7 @@ class MumbleClient extends EventEmitter {
       this._webrtcSessionId = Date.now()
       this._webrtcSessionVersion = 0
       this._pc = new window.RTCPeerConnection({
+        iceServers: this._webrtcIceServers,
         sdpSemantics: 'unified-plan'
       })
       this._pc.addStream(this._webrtcMic)
