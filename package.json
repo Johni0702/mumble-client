@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/jafudi/mumble-client#readme",
   "devDependencies": {
-    "babel-cli": "^7.16.0",
+    "@babel/cli": "^7.16.0",
     "npx": "^10.2.2",
     "@babel/preset-env": "^7.12.7",
     "chai": "^3.5.0",
