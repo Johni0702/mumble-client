@@ -32,7 +32,7 @@
     "standard": "^8.0.0"
   },
   "dependencies": {
-    "drop-stream": "^0.1.1",
+    "drop-stream": "^1.0.0",
     "mumble-streams": "0.0.4",
     "promise": "^7.1.1",
     "reduplexer": "^1.1.0",
