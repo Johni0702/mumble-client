@@ -4,7 +4,7 @@
   "description": "Mumble protocol client library",
   "main": "index.js",
   "scripts": {
-    "compile": "npm install --save-dev babel-cli && node_modules/.bin/babel -d lib/ src/",
+    "compile": "npx babel src --out-dir lib",
     "prepublish": "npm run compile",
     "mocha": "node_modules/.bin/mocha --compilers js:babel-core/register",
     "test": "npm run compile && npm run mocha"
@@ -21,6 +21,7 @@
   "homepage": "https://github.com/jafudi/mumble-client#readme",
   "devDependencies": {
     "babel-cli": "^6.14.0",
+    "npx": "^10.2.2"
     "babel-preset-es2015": "^6.14.0",
     "chai": "^3.5.0",
     "mocha": "^3.0.2",
