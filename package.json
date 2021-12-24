@@ -21,7 +21,7 @@
   "homepage": "https://github.com/jafudi/mumble-client#readme",
   "devDependencies": {
     "babel-cli": "^6.14.0",
-    "npx": "^10.2.2"
+    "npx": "^10.2.2",
     "babel-preset-es2015": "^6.14.0",
     "chai": "^3.5.0",
     "mocha": "^3.0.2",
