@@ -11,14 +11,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/johni0702/mumble-client.git"
+    "url": "git+https://github.com/jafudi/mumble-client.git"
   },
   "author": "Jonas Herzig <me@johni0702.de>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/johni0702/mumble-client/issues"
+    "url": "https://github.com/jafudi/mumble-client/issues"
   },
-  "homepage": "https://github.com/johni0702/mumble-client#readme",
+  "homepage": "https://github.com/jafudi/mumble-client#readme",
   "files": [
     "index.js",
     "lib"
