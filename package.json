@@ -6,7 +6,7 @@
   "scripts": {
     "compile": "npm uninstall babel && npm install --save-dev babel-cli && node_modules/.bin/babel src --out-dir lib",
     "prepublish": "npm run compile",
-    "mocha": "node_modules/.bin/mocha --require babel-core/register",
+    "mocha": "node_modules/.bin/mocha --require babel-core/register --exit",
     "test": "npm run compile && npm run mocha"
   },
   "repository": {
