@@ -91,8 +91,10 @@ class User extends EventEmitter {
         this._voice = null
       })
       this._voiceTimeout = new Timer(() => {
-        this._voice.end()
-        this._voice = null
+        if (this._voice !== null) {
+          this._voice.end()
+          this._voice = null
+        }
       }, this._client._options.userVoiceTimeout || 200).set()
       this.emit('voice', this._voice)
     }
