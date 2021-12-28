@@ -1,4 +1,4 @@
-# mumble-client
+# mumble-client (upgraded to Babel 7 and JS Standard v16)
 
 This module implements the client side of the Mumble protocol for use in both Nodejs and the browser.
 It does not enforce any particular transport protocol nor does it provide the audio encoder/decoder.
