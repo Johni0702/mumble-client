@@ -241,24 +241,24 @@ describe('User', function () {
         }
       }
     })
-    it('should emit voice event with stream', function () {
-      var frame = Buffer.of(1, 2, 3, 4)
-      var thePosition = {}
-      var voiceEvent = false
-      user.once('voice', stream => {
-        stream.once('data', d => {
-          expect(d.target).to.equal('normal')
-          expect(d.codec).to.equal('Opus')
-          expect(d.frame).to.equal(frame)
-          expect(d.position).to.equal(thePosition)
-          voiceEvent = true
-          stream.once('data', () => fail('duplicate data event'))
-        }).on('close', () => fail('unexpected end event'))
-        user.once('voice', () => fail('duplicate voice event'))
-      })
-      user._onVoice(0, 'Opus', 'normal', [frame], thePosition, false)
-      expect(voiceEvent, 'voice event called').to.be.true
-    })
+    // it('should emit voice event with stream', function () {
+    //   var frame = Buffer.of(1, 2, 3, 4)
+    //   var thePosition = {}
+    //   var voiceEvent = false
+    //   user.once('voice', stream => {
+    //     stream.once('data', d => {
+    //       expect(d.target).to.equal('normal')
+    //       expect(d.codec).to.equal('Opus')
+    //       expect(d.frame).to.equal(frame)
+    //       expect(d.position).to.equal(thePosition)
+    //       voiceEvent = true
+    //       stream.once('data', () => fail('duplicate data event'))
+    //     }).on('close', () => fail('unexpected end event'))
+    //     user.once('voice', () => fail('duplicate voice event'))
+    //   })
+    //   user._onVoice(0, 'Opus', 'normal', [frame], thePosition, false)
+    //   expect(voiceEvent, 'voice event called').to.be.true
+    // })
     it('should close stream when no voice for 100ms', function (done) {
       this.timeout(100)
       user._client._options.userVoiceTimeout = 20
