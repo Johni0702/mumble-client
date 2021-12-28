@@ -4,7 +4,7 @@
   "description": "Mumble protocol client library",
   "main": "index.js",
   "scripts": {
-    "compile": "npm uninstall babel && npm install --save-dev @babel/cli && node_modules/.bin/babel src --out-dir lib",
+    "compile": "npm uninstall babel && npm install --save-dev @babel/core @babel/cli && node_modules/.bin/babel src --out-dir lib",
     "prepublish": "npm run compile",
     "mocha": "npm install --save-dev @babel/register && node_modules/.bin/mocha --require @babel/register --exit",
     "test": "npm run compile && npm run mocha"
@@ -21,6 +21,7 @@
   "homepage": "https://github.com/jafudi/mumble-client#readme",
   "devDependencies": {
     "@babel/cli": "^7.16.0",
+    "@babel/core": "^7.16.5",
     "@babel/preset-env": "^7.16.5",
     "@babel/register": "^7.16.5",
     "chai": "^3.5.0",
