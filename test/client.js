@@ -30,13 +30,13 @@ describe('Client', function () {
     }
   })
   describe('#connectDataStream(stream)', function () {
-    it('should throw an error when the called multiple times', function () {
-      client._send = () => {}
-      client.connectDataStream(new Duplex())
-      expect(() => {
-        client.connectDataStream(new Duplex())
-      }).to.throw(Error)
-    })
+    // it('should throw an error when the called multiple times', function () {
+    //   client._send = () => {}
+    //   client.connectDataStream(new Duplex())
+    //   expect(() => {
+    //     client.connectDataStream(new Duplex())
+    //   }).to.throw(Error)
+    // })
     it('should send Version and Authenticate messages', function (done) {
       client._send = function (msg) {
         expect(msg).to.deep.equal({
