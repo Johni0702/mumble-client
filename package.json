@@ -24,19 +24,19 @@
     "@babel/core": "^7.16.5",
     "@babel/preset-env": "^7.16.5",
     "@babel/register": "^7.16.5",
-    "chai": "^3.5.0",
+    "chai": "^4.3.4",
     "mocha": "^9.1.3",
     "mocha-standard": "^1.0.0",
-    "standard": "^8.0.0"
+    "standard": "^16.0.4"
   },
   "dependencies": {
     "drop-stream": "^1.0.0",
     "mumble-streams": "0.0.4",
-    "promise": "^7.1.1",
+    "promise": "^8.1.0",
     "reduplexer": "^1.1.0",
     "remove-value": "^1.0.0",
     "rtimer": "^0.1.0",
     "stats-incremental": "^1.2.1",
-    "through2": "^2.0.2"
+    "through2": "^4.0.2"
   }
 }

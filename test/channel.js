@@ -1,12 +1,13 @@
 /* eslint-env mocha */
+/* eslint-disable no-unused-expressions */
 import { expect } from 'chai'
 import Channel from '../lib/channel'
 
 describe('Channel', function () {
   this.timeout(100)
-  var channel1, channel2, channel3, channel4
-  var client
-  var channel
+  let channel1, channel2, channel3, channel4
+  let client
+  let channel
   beforeEach(function () {
     channel1 = { _id: 1, children: [] }
     channel2 = { _id: 2, children: [] }
@@ -23,24 +24,30 @@ describe('Channel', function () {
   it('should have children array', function () {
     expect(channel.children).be.an.instanceof(Array)
   })
-  var simpleProperties = [
-    [ 'name', 'name', '123' ],
-    [ 'description', 'description', '123' ],
-    [ 'descriptionHash', 'description_hash', '123' ],
-    [ 'temporary', 'temporary', true ],
-    [ 'position', 'position', 123 ],
-    [ 'maxUsers', 'max_users', 123 ]
+  const simpleProperties = [
+    ['name', 'name', '123'],
+    ['description', 'description', '123'],
+    ['descriptionHash', 'description_hash', '123'],
+    ['temporary', 'temporary', true],
+    ['position', 'position', 123],
+    ['maxUsers', 'max_users', 123]
   ]
   describe('changing of property', function () {
     simpleProperties.forEach(property => {
       it('should prevent ' + property[0], function () {
-        expect(() => { channel[property[0]] = property[2] }).to.throw(Error)
+        expect(() => {
+          channel[property[0]] = property[2]
+        }).to.throw(Error)
       })
       it('should prevent parent', function () {
-        expect(() => { channel.parent = channel2 }).to.throw(Error)
+        expect(() => {
+          channel.parent = channel2
+        }).to.throw(Error)
       })
       it('should prevent links', function () {
-        expect(() => { channel.links = [] }).to.throw(Error)
+        expect(() => {
+          channel.links = []
+        }).to.throw(Error)
       })
     })
   })
@@ -74,11 +81,14 @@ describe('Channel', function () {
     })
     it('should update the links', function (done) {
       channel.once('update', properties => {
-        expect(properties).to.deep.equal({links: [
-          channel1, channel2, channel3, channel4
-        ]})
+        expect(properties).to.deep.equal({
+          links: [channel1, channel2, channel3, channel4]
+        })
         expect(channel.links).to.deep.equal([
-          channel1, channel2, channel3, channel4
+          channel1,
+          channel2,
+          channel3,
+          channel4
         ])
         done()
       })
@@ -86,19 +96,18 @@ describe('Channel', function () {
     })
     it('should add links', function (done) {
       channel.once('update', properties => {
-        expect(properties).to.deep.equal({links: [
-          channel1, channel2
-        ]})
-        expect(channel.links).to.deep.equal([
-          channel1, channel2
-        ])
+        expect(properties).to.deep.equal({ links: [channel1, channel2] })
+        expect(channel.links).to.deep.equal([channel1, channel2])
 
         channel.once('update', properties => {
-          expect(properties).to.deep.equal({links: [
-            channel1, channel2, channel3, channel4
-          ]})
+          expect(properties).to.deep.equal({
+            links: [channel1, channel2, channel3, channel4]
+          })
           expect(channel.links).to.deep.equal([
-            channel1, channel2, channel3, channel4
+            channel1,
+            channel2,
+            channel3,
+            channel4
           ])
           done()
         })
@@ -108,20 +117,14 @@ describe('Channel', function () {
     })
     it('should remove links', function (done) {
       channel.once('update', properties => {
-        expect(properties).to.deep.equal({links: [
-          channel1, channel2, channel3
-        ]})
-        expect(channel.links).to.deep.equal([
-          channel1, channel2, channel3
-        ])
+        expect(properties).to.deep.equal({
+          links: [channel1, channel2, channel3]
+        })
+        expect(channel.links).to.deep.equal([channel1, channel2, channel3])
 
         channel.once('update', properties => {
-          expect(properties).to.deep.equal({links: [
-            channel1
-          ]})
-          expect(channel.links).to.deep.equal([
-            channel1
-          ])
+          expect(properties).to.deep.equal({ links: [channel1] })
+          expect(channel.links).to.deep.equal([channel1])
           done()
         })
         channel._update({ links_remove: [2, 3] })
@@ -217,7 +220,7 @@ describe('Channel', function () {
     it('should lazily return the parent channel', function () {
       channel._update({ parent: 1 })
       expect(channel.parent).to.equal(channel1)
-      var newChannel1 = { _id: 1, new: true }
+      const newChannel1 = { _id: 1, new: true }
       client._channelById[1] = newChannel1
       expect(channel.parent).to.equal(newChannel1)
     })

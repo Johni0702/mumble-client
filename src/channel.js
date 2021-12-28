@@ -20,7 +20,7 @@ class Channel extends EventEmitter {
   }
 
   _update (msg) {
-    var changes = {}
+    const changes = {}
     if (msg.name != null) {
       changes.name = this._name = msg.name
     }
@@ -49,7 +49,9 @@ class Channel extends EventEmitter {
       changes.links = this.links
     }
     if (msg.links_add) {
-      msg.links_add.filter(e => !this._links.includes(e)).forEach(e => this._links.push(e))
+      msg.links_add
+        .filter(e => !this._links.includes(e))
+        .forEach(e => this._links.push(e))
       changes.links = this.links
     }
     if (msg.parent != null) {
@@ -191,7 +193,9 @@ class Channel extends EventEmitter {
   }
 
   set description (to) {
-    throw new Error('Cannot set description. Use #setDescription(desc) instead.')
+    throw new Error(
+      'Cannot set description. Use #setDescription(desc) instead.'
+    )
   }
 
   get descriptionHash () {
