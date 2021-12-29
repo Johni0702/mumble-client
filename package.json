@@ -19,6 +19,10 @@
     "url": "https://github.com/jafudi/mumble-client/issues"
   },
   "homepage": "https://github.com/jafudi/mumble-client#readme",
+  "files": [
+    "index.js",
+    "lib"
+  ],
   "devDependencies": {
     "@babel/cli": "^7.16.0",
     "@babel/core": "^7.16.5",
