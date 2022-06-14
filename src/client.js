@@ -141,8 +141,12 @@ class MumbleClient extends EventEmitter {
     this._dataDecoder = new mumbleStreams.data.Decoder()
     this._voiceEncoder = new mumbleStreams.voice.Encoder('server')
     this._voiceDecoder = new mumbleStreams.voice.Decoder('server')
-    this._data = duplexer(this._dataEncoder, this._dataDecoder, {objectMode: true})
-    this._voice = duplexer(this._voiceEncoder, this._voiceDecoder, {objectMode: true})
+    this._data = duplexer(this._dataEncoder, this._dataDecoder, {
+      objectMode: true
+    })
+    this._voice = duplexer(this._voiceEncoder, this._voiceDecoder, {
+      objectMode: true
+    })
 
     this._data.on('data', this._onData.bind(this))
     this._voice.on('data', this._onVoice.bind(this))
@@ -154,11 +158,18 @@ class MumbleClient extends EventEmitter {
       })
     })
     this._voiceDecoder.on('unknown_codec', codecId =>
-      this.emit('unknown_codec', codecId))
+      this.emit('unknown_codec', codecId)
+    )
     this._data.on('end', this.disconnect.bind(this))
 
-    this._registerErrorHandler(this._data, this._voice, this._dataEncoder,
-      this._dataDecoder, this._voiceEncoder, this._voiceDecoder)
+    this._registerErrorHandler(
+      this._data,
+      this._voice,
+      this._dataEncoder,
+      this._dataDecoder,
+      this._voiceEncoder,
+      this._voiceDecoder
+    )
 
     this._disconnected = false
   }
@@ -249,9 +260,13 @@ class MumbleClient extends EventEmitter {
     if (!this._codecs) {
       return DropStream.obj()
     }
-    var voiceStream = through2.obj((chunk, encoding, callback) => {
+    const voiceStream = through2.obj((chunk, encoding, callback) => {
       if (chunk instanceof Buffer) {
-        chunk = new Float32Array(chunk.buffer, chunk.byteOffset, chunk.byteLength / 4)
+        chunk = new Float32Array(
+          chunk.buffer,
+          chunk.byteOffset,
+          chunk.byteLength / 4
+        )
       }
       if (chunk instanceof Float32Array) {
         chunk = {
@@ -267,16 +282,17 @@ class MumbleClient extends EventEmitter {
           position: { x: chunk.x, y: chunk.y, z: chunk.z }
         }
       }
-      let samples = this._samplesPerPacket || (chunk.pcm.length / numberOfChannels)
+      const samples =
+        this._samplesPerPacket || chunk.pcm.length / numberOfChannels
       chunk.bitrate = this.getActualBitrate(samples, chunk.position != null)
       callback(null, chunk)
     })
     const codec = 'Opus' // TODO
-    var seqNum = 0
+    let seqNum = 0
     voiceStream
       .pipe(this._codecs.createEncoderStream(codec))
       .on('data', data => {
-        let duration = this._codecs.getDuration(codec, data.frame) / 10
+        const duration = this._codecs.getDuration(codec, data.frame) / 10
         this._voice.write({
           seqNum: seqNum,
           codec: codec,
@@ -286,7 +302,8 @@ class MumbleClient extends EventEmitter {
           end: false
         })
         seqNum += duration
-      }).on('end', () => {
+      })
+      .on('end', () => {
         this._voice.write({
           seqNum: seqNum,
           codec: codec,
@@ -303,9 +320,15 @@ class MumbleClient extends EventEmitter {
    * Forwards the packet to the source user.
    */
   _onVoice (chunk) {
-    var user = this._userById[chunk.source]
-    user._onVoice(chunk.seqNum, chunk.codec, chunk.target, chunk.frames,
-      chunk.position, chunk.end)
+    const user = this._userById[chunk.source]
+    user._onVoice(
+      chunk.seqNum,
+      chunk.codec,
+      chunk.target,
+      chunk.frames,
+      chunk.position,
+      chunk.end
+    )
   }
 
   /**
@@ -351,10 +374,10 @@ class MumbleClient extends EventEmitter {
         this._error('timeout')
         return
       }
-      let dataStats = this._dataStats.getAll()
-      let voiceStats = this._voiceStats.getAll()
-      let timestamp = new Date().getTime()
-      let payload = {
+      const dataStats = this._dataStats.getAll()
+      const voiceStats = this._voiceStats.getAll()
+      const timestamp = new Date().getTime()
+      const payload = {
         timestamp: timestamp
       }
       if (dataStats) {
@@ -385,8 +408,8 @@ class MumbleClient extends EventEmitter {
     }
     this._inFlightDataPings--
 
-    let now = new Date().getTime()
-    let duration = now - payload.timestamp.toNumber()
+    const now = new Date().getTime()
+    const duration = now - payload.timestamp.toNumber()
     this._dataStats.update(duration)
     this.emit('dataPing', duration)
   }
@@ -401,8 +424,8 @@ class MumbleClient extends EventEmitter {
     if (payload.type === DenyType.Text) {
       this.emit('denied', 'Text', null, null, payload.reason)
     } else if (payload.type === DenyType.Permission) {
-      let user = this._userById[payload.session]
-      let channel = this._channelById[payload.channel_id]
+      const user = this._userById[payload.session]
+      const channel = this._channelById[payload.channel_id]
       this.emit('denied', 'Permission', user, channel, payload.permission)
     } else if (payload.type === DenyType.SuperUser) {
       this.emit('denied', 'SuperUser', null, null, null)
@@ -413,7 +436,7 @@ class MumbleClient extends EventEmitter {
     } else if (payload.type === DenyType.TemporaryChannel) {
       this.emit('denied', 'TemporaryChannel', null, null, null)
     } else if (payload.type === DenyType.MissingCertificate) {
-      let user = this._userById[payload.session]
+      const user = this._userById[payload.session]
       this.emit('denied', 'MissingCertificate', user, null, null)
     } else if (payload.type === DenyType.UserName) {
       this.emit('denied', 'UserName', null, null, payload.name)
@@ -427,7 +450,8 @@ class MumbleClient extends EventEmitter {
   }
 
   _onTextMessage (payload) {
-    this.emit('message',
+    this.emit(
+      'message',
       this._userById[payload.actor],
       payload.message,
       payload.session.map(id => this._userById[id]),
@@ -437,15 +461,15 @@ class MumbleClient extends EventEmitter {
   }
 
   _onChannelState (payload) {
-    var channel = this._channelById[payload.channel_id]
+    let channel = this._channelById[payload.channel_id]
     if (!channel) {
       channel = new Channel(this, payload.channel_id)
       this._channelById[channel._id] = channel
       this.channels.push(channel)
       this.emit('newChannel', channel)
     }
-    (payload.links_remove || []).forEach(otherId => {
-      var otherChannel = this._channelById[otherId]
+    ;(payload.links_remove || []).forEach(otherId => {
+      const otherChannel = this._channelById[otherId]
       if (otherChannel && otherChannel.links.indexOf(channel) !== -1) {
         otherChannel._update({
           links_remove: [payload.channel_id]
@@ -456,7 +480,7 @@ class MumbleClient extends EventEmitter {
   }
 
   _onChannelRemove (payload) {
-    var channel = this._channelById[payload.channel_id]
+    const channel = this._channelById[payload.channel_id]
     if (channel) {
       channel._remove()
       delete this._channelById[channel._id]
@@ -465,7 +489,7 @@ class MumbleClient extends EventEmitter {
   }
 
   _onUserState (payload) {
-    var user = this._userById[payload.session]
+    let user = this._userById[payload.session]
     if (!user) {
       user = new User(this, payload.session)
       this._userById[user._id] = user
@@ -480,7 +504,7 @@ class MumbleClient extends EventEmitter {
   }
 
   _onUserRemove (payload) {
-    var user = this._userById[payload.session]
+    const user = this._userById[payload.session]
     if (user) {
       user._remove(this._userById[payload.actor], payload.reason, payload.ban)
       delete this._userById[user._id]
@@ -528,8 +552,12 @@ class MumbleClient extends EventEmitter {
    * Calculate the actual bitrate taking into account maximum and preferred bitrate.
    */
   getActualBitrate (samplesPerPacket, sendPosition) {
-    let bitrate = this.getPreferredBitrate(samplesPerPacket, sendPosition)
-    let bandwidth = MumbleClient.calcEnforcableBandwidth(bitrate, samplesPerPacket, sendPosition)
+    const bitrate = this.getPreferredBitrate(samplesPerPacket, sendPosition)
+    const bandwidth = MumbleClient.calcEnforcableBandwidth(
+      bitrate,
+      samplesPerPacket,
+      sendPosition
+    )
     if (bandwidth <= this.maxBandwidth) {
       return bitrate
     } else {
@@ -552,7 +580,11 @@ class MumbleClient extends EventEmitter {
    * Calculate the maximum bitrate possible given the current server bandwidth limit.
    */
   getMaxBitrate (samplesPerPacket, sendPosition) {
-    let overhead = MumbleClient.calcEnforcableBandwidth(0, samplesPerPacket, sendPosition)
+    const overhead = MumbleClient.calcEnforcableBandwidth(
+      0,
+      samplesPerPacket,
+      sendPosition
+    )
     return this.maxBandwidth - overhead
   }
 
@@ -566,9 +598,10 @@ class MumbleClient extends EventEmitter {
     // Codec Header depends on codec:
     //  - Opus is always 4 (just the length as VarInt)
     //  - CELT/Speex depends on frames (10ms) per packet (1 byte each)
-    let codecHeaderBytes = Math.max(4, samplesPerPacket / 480)
-    let packetBytes = 20 + 8 + 4 + 1 + 4 + codecHeaderBytes + (sendPosition ? 12 : 0)
-    let packetsPerSecond = 48000 / samplesPerPacket
+    const codecHeaderBytes = Math.max(4, samplesPerPacket / 480)
+    const packetBytes =
+      20 + 8 + 4 + 1 + 4 + codecHeaderBytes + (sendPosition ? 12 : 0)
+    const packetsPerSecond = 48000 / samplesPerPacket
     return Math.round(packetBytes * 8 * packetsPerSecond + bitrate)
   }
 
@@ -580,7 +613,7 @@ class MumbleClient extends EventEmitter {
    * @returns {?Channel}
    */
   getChannel (name) {
-    for (let channel of this.channels) {
+    for (const channel of this.channels) {
       if (channel.name === name) {
         return channel
       }
@@ -589,7 +622,7 @@ class MumbleClient extends EventEmitter {
   }
 
   setSelfMute (mute) {
-    var message = {
+    const message = {
       name: 'UserState',
       payload: {
         session: this.self._id,
@@ -601,7 +634,7 @@ class MumbleClient extends EventEmitter {
   }
 
   setSelfDeaf (deaf) {
-    var message = {
+    const message = {
       name: 'UserState',
       payload: {
         session: this.self._id,

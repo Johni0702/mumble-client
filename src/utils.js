@@ -13,4 +13,3 @@ export function getOSVersion () {
     return process.version
   }
 }
-

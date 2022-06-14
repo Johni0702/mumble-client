@@ -1,4 +1,5 @@
 /* eslint-env mocha */
+/* eslint-disable no-unused-expressions */
 import { expect } from 'chai'
 import { fail } from 'assert'
 import { Duplex } from 'stream'
@@ -9,13 +10,16 @@ import { data, version } from 'mumble-streams'
 const DenyType = data.messages.PermissionDenied.DenyType
 
 class DropDuplex extends Duplex {
-  _write (chunk, encoding, callback) { callback() }
+  _write (chunk, encoding, callback) {
+    callback()
+  }
+
   _read (size) {}
 }
 
 describe('Client', function () {
   this.timeout(100)
-  var client
+  let client
   beforeEach(function () {
     client = new Client({
       username: 'Test',
@@ -32,9 +36,9 @@ describe('Client', function () {
   describe('#connectDataStream(stream)', function () {
     it('should throw an error when the called multiple times', function () {
       client._send = () => {}
-      client.connectDataStream(new Duplex())
+      client.connectDataStream(new DropDuplex())
       expect(() => {
-        client.connectDataStream(new Duplex())
+        client.connectDataStream(new DropDuplex())
       }).to.throw(Error)
     })
     it('should send Version and Authenticate messages', function (done) {
@@ -63,7 +67,7 @@ describe('Client', function () {
           done()
         }
       }
-      client.connectDataStream(new Duplex())
+      client.connectDataStream(new DropDuplex())
     })
   })
   describe('#_onData(msg)', function () {
@@ -86,7 +90,7 @@ describe('Client', function () {
       })
     })
     it('should forward ChannelState message payload', function (done) {
-      var channel = {
+      const channel = {
         _update: function (msg) {
           expect(msg).to.have.property('name', 'New Name')
           done()
@@ -103,8 +107,8 @@ describe('Client', function () {
       })
     })
     it('should handle ChannelRemove message', function () {
-      var removedCalled = false
-      var channel = {
+      let removedCalled = false
+      const channel = {
         _id: 42,
         _remove: function () {
           if (removedCalled) {
@@ -145,7 +149,7 @@ describe('Client', function () {
       })
     })
     it('should add default channel to initial UserState message', function (done) {
-      var channel = {
+      const channel = {
         users: [],
         _update: function (msg) {
           expect(msg).to.have.property('name', 'New Name')
@@ -168,7 +172,7 @@ describe('Client', function () {
       })
     })
     it('should forward UserState message payload', function (done) {
-      var user = {
+      const user = {
         _update: function (msg) {
           expect(msg).to.have.property('name', 'New Name')
           done()
@@ -185,8 +189,8 @@ describe('Client', function () {
       })
     })
     it('should handle UserRemove message', function () {
-      var removedCalled = false
-      var user = {
+      let removedCalled = false
+      const user = {
         _id: 42,
         _remove: function (actor, reason, ban) {
           if (removedCalled) {
@@ -199,7 +203,7 @@ describe('Client', function () {
       client.users.push(user)
       client._userById[42] = user
 
-      var theActor = {}
+      const theActor = {}
       client.users.push(theActor)
       client._userById[1] = theActor
 
@@ -217,7 +221,7 @@ describe('Client', function () {
       expect(client._userById).to.not.have.property(42)
     })
     it('should handle ServerSync message', function (done) {
-      var self = {}
+      const self = {}
       client.users.push(self)
       client._userById[42] = self
 
@@ -238,7 +242,7 @@ describe('Client', function () {
       })
     })
     it('should handle UDPTunnel', function (done) {
-      var payload = {}
+      const payload = {}
       client._voiceDecoder = {
         write (data) {
           expect(data).to.equal(payload)
@@ -252,18 +256,24 @@ describe('Client', function () {
     })
     // TODO BanList
     it('should handle TextMessage', function (done) {
-      var user = {}
+      const user = {}
       client.users.push(user)
       client._userById[42] = user
 
-      var channel1 = {}
+      const channel1 = {}
       client.channels.push(channel1)
       client._channelById[1] = channel1
-      var channel2 = {}
+      const channel2 = {}
       client.channels.push(channel2)
       client._channelById[2] = channel2
 
-      client.on('message', function (sender, message, targetUsers, targetChannels, targetTrees) {
+      client.on('message', function (
+        sender,
+        message,
+        targetUsers,
+        targetChannels,
+        targetTrees
+      ) {
         expect(sender).to.equal(user)
         expect(message).to.equal('Test')
         expect(targetUsers).to.have.members([user])
@@ -283,22 +293,28 @@ describe('Client', function () {
       })
     })
     describe('PermissionDenied', function () {
-      var user = {}
-      var channel = {}
-      var types = [
-        [ 'Text', null, null, 'Reason', { reason: 'Reason' } ],
-        [ 'Permission', user, channel, 'perm', { session: 1, channel_id: 1, permission: 'perm' } ],
-        [ 'SuperUser', null, null, null, {} ],
-        [ 'ChannelName', null, null, 'Name', { name: 'Name' } ],
-        [ 'TextTooLong', null, null, null, {} ],
-        [ 'TemporaryChannel', null, null, null, {} ],
-        [ 'MissingCertificate', user, null, null, { session: 1 } ],
-        [ 'UserName', null, null, 'Name', { name: 'Name' } ],
-        [ 'ChannelFull', null, null, null, {} ],
-        [ 'NestingLimit', null, null, null, {} ]
+      const user = {}
+      const channel = {}
+      const types = [
+        ['Text', null, null, 'Reason', { reason: 'Reason' }],
+        [
+          'Permission',
+          user,
+          channel,
+          'perm',
+          { session: 1, channel_id: 1, permission: 'perm' }
+        ],
+        ['SuperUser', null, null, null, {}],
+        ['ChannelName', null, null, 'Name', { name: 'Name' }],
+        ['TextTooLong', null, null, null, {}],
+        ['TemporaryChannel', null, null, null, {}],
+        ['MissingCertificate', user, null, null, { session: 1 }],
+        ['UserName', null, null, 'Name', { name: 'Name' }],
+        ['ChannelFull', null, null, null, {}],
+        ['NestingLimit', null, null, null, {}]
       ]
       types.forEach(function (data) {
-        var [theType, theUser, theChannel, theDetail, payload] = data
+        const [theType, theUser, theChannel, theDetail, payload] = data
         it('should handle type ' + theType, function (done) {
           client._userById[1] = user
           client._channelById[1] = channel
@@ -392,7 +408,7 @@ describe('Client', function () {
   })
   describe('#setSelfTexture(texture)', function () {
     it('should send UserState message', function (done) {
-      var texture = Buffer.of(0, 1, 2, 3)
+      const texture = Buffer.of(0, 1, 2, 3)
       client._send = function (msg) {
         expect(msg).to.deep.equal({
           name: 'UserState',
@@ -423,7 +439,7 @@ describe('Client', function () {
   })
   describe('#setPluginContext(context)', function () {
     it('should send UserState message', function (done) {
-      var context = Buffer.of(0, 1, 2, 3)
+      const context = Buffer.of(0, 1, 2, 3)
       client._send = function (msg) {
         expect(msg).to.deep.equal({
           name: 'UserState',
@@ -469,9 +485,9 @@ describe('Client', function () {
   })
   describe('voice packet decoded', function () {
     it('should forward the voice data to the user', function (done) {
-      var theFrame = {}
-      var thePosition = {}
-      var user = {
+      const theFrame = {}
+      const thePosition = {}
+      const user = {
         _onVoice (seqNum, codec, target, frames, position, end) {
           expect(seqNum).to.equal(13)
           expect(codec).to.equal('Opus')

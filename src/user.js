@@ -13,7 +13,7 @@ class User extends EventEmitter {
   }
 
   _update (msg) {
-    var changes = {}
+    const changes = {}
     if (msg.name != null) {
       changes.username = this._username = msg.name
     }
@@ -91,8 +91,10 @@ class User extends EventEmitter {
         this._voice = null
       })
       this._voiceTimeout = new Timer(() => {
-        this._voice.end()
-        this._voice = null
+        if (this._voice != null) {
+          this._voice.end()
+          this._voice = null
+        }
       }, this._client._options.userVoiceTimeout || 200).set()
       this.emit('voice', this._voice)
     }
@@ -119,7 +121,7 @@ class User extends EventEmitter {
    */
   _onVoice (seqNum, codec, target, frames, position, end) {
     if (frames.length > 0) {
-      let duration = this._getDuration(codec, frames)
+      const duration = this._getDuration(codec, frames)
       if (this._voice != null) {
         // This is not the first packet in this transmission
 
@@ -165,7 +167,7 @@ class User extends EventEmitter {
   }
 
   setMute (mute) {
-    var message = {
+    const message = {
       name: 'UserState',
       payload: {
         session: this._id,
@@ -177,7 +179,7 @@ class User extends EventEmitter {
   }
 
   setDeaf (deaf) {
-    var message = {
+    const message = {
       name: 'UserState',
       payload: {
         session: this._id,
@@ -301,7 +303,9 @@ class User extends EventEmitter {
   }
 
   set selfMute (to) {
-    throw new Error('Cannot set selfMute. Use Client#setSelfMute(mute) instead.')
+    throw new Error(
+      'Cannot set selfMute. Use Client#setSelfMute(mute) instead.'
+    )
   }
 
   get selfDeaf () {
@@ -309,7 +313,9 @@ class User extends EventEmitter {
   }
 
   set selfDeaf (to) {
-    throw new Error('Cannot set selfDeaf. Use Client#setSelfDeaf(deaf) instead.')
+    throw new Error(
+      'Cannot set selfDeaf. Use Client#setSelfDeaf(deaf) instead.'
+    )
   }
 
   get suppress () {
@@ -325,7 +331,9 @@ class User extends EventEmitter {
   }
 
   set texture (to) {
-    throw new Error('Cannot set texture. Use Client#setSelfTexture(texture) or #clearTexture() instead.')
+    throw new Error(
+      'Cannot set texture. Use Client#setSelfTexture(texture) or #clearTexture() instead.'
+    )
   }
 
   get textureHash () {
@@ -341,7 +349,9 @@ class User extends EventEmitter {
   }
 
   set comment (to) {
-    throw new Error('Cannot set comment. Use Client#setSelfTexture(texture) or #clearComment() instead.')
+    throw new Error(
+      'Cannot set comment. Use Client#setSelfTexture(texture) or #clearComment() instead.'
+    )
   }
 
   get commentHash () {
@@ -357,7 +367,9 @@ class User extends EventEmitter {
   }
 
   set prioritySpeaker (to) {
-    throw new Error('Cannot set prioritySpeaker. Use #setPrioritySpeaker(prioSpeaker) instead.')
+    throw new Error(
+      'Cannot set prioritySpeaker. Use #setPrioritySpeaker(prioSpeaker) instead.'
+    )
   }
 
   get recording () {
@@ -365,7 +377,9 @@ class User extends EventEmitter {
   }
 
   set recording (to) {
-    throw new Error('Cannot set recording. Use Client#setSelfRecording(recording) instead.')
+    throw new Error(
+      'Cannot set recording. Use Client#setSelfRecording(recording) instead.'
+    )
   }
 
   get certHash () {
